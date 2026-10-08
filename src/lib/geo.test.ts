@@ -6,6 +6,7 @@ import {
   distanciaAteRotaM,
   distanciaM,
   pontoNaRota,
+  simplificar,
 } from './geo';
 
 const guara = { lat: -15.825, lng: -47.98 };
@@ -50,5 +51,23 @@ describe('geo', () => {
     expect(rota[0]).toEqual(guara);
     expect(rota[rota.length - 1]).toEqual(destino);
     expect(comprimentoM(rota)).toBeGreaterThan(distanciaM(guara, destino));
+  });
+});
+
+describe('simplificar', () => {
+  it('tira pontos em linha reta e mantém as curvas', () => {
+    const reta = Array.from({ length: 101 }, (_, i) => deslocar(guara, i * 10, 0));
+    expect(simplificar(reta, 5)).toHaveLength(2);
+    const curva2 = [...reta, deslocar(guara, 1000, 500)];
+    const simples = simplificar(curva2, 5);
+    expect(simples).toHaveLength(3);
+    expect(simples[1]).toEqual(reta[100]);
+  });
+
+  it('nunca se afasta mais que a tolerância do traçado original', () => {
+    const rota = curva(guara, deslocar(guara, 9000, 4000), 0.3, 400);
+    const simples = simplificar(rota, 5);
+    expect(simples.length).toBeLessThan(rota.length / 4);
+    for (const ponto of rota) expect(distanciaAteRotaM(ponto, simples)).toBeLessThanOrEqual(5.01);
   });
 });

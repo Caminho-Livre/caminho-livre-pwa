@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dentroDaJanela, formatarHora, haQuanto, resumoDias, resumoJanela } from './tempo';
+import { dentroDaJanela, formatarHora, haQuanto, resumoDias, resumoJanela, trajetoValendo } from './tempo';
 
 // 5 de outubro de 2026 é uma segunda-feira.
 const segunda = (h: number, m = 0) => new Date(2026, 9, 5, h, m);
@@ -47,5 +47,21 @@ describe('textos', () => {
     expect(haQuanto(new Date(base.getTime() - 20_000).toISOString(), base)).toBe('agora');
     expect(haQuanto(new Date(base.getTime() - 6 * 60_000).toISOString(), base)).toBe('há 6 min');
     expect(haQuanto(new Date(base.getTime() - 130 * 60_000).toISOString(), base)).toBe('há 2 h');
+  });
+});
+
+describe('fuso do trajeto', () => {
+  // 8/10/2026 12:00 UTC = 9:00 em Brasília (UTC-3) = 14:00 em Madri (UTC+2).
+  const instante = new Date(Date.UTC(2026, 9, 8, 12, 0));
+  const base = { ativo: true, diasSemana: [4], horaInicio: '08:30', horaFim: '09:30' };
+
+  it('lê a janela na hora local do fuso do trajeto', () => {
+    expect(trajetoValendo({ ...base, fuso: 'America/Sao_Paulo' }, instante)).toBe(true);
+    expect(trajetoValendo({ ...base, fuso: 'Europe/Madrid' }, instante)).toBe(false);
+    expect(trajetoValendo({ ...base, horaInicio: '13:30', horaFim: '14:30', fuso: 'Europe/Madrid' }, instante)).toBe(true);
+  });
+
+  it('respeita o liga/desliga', () => {
+    expect(trajetoValendo({ ...base, ativo: false, fuso: 'America/Sao_Paulo' }, instante)).toBe(false);
   });
 });

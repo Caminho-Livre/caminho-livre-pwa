@@ -123,3 +123,33 @@ export function curva(origem: LatLng, destino: LatLng, desvio: number, pontos = 
 export function deslocar(p: LatLng, lesteM: number, norteM: number): LatLng {
   return desprojetar({ x: lesteM, y: norteM }, p);
 }
+
+/**
+ * Tira pontos redundantes da rota (Douglas–Peucker) sem desviar mais que
+ * `toleranciaM` metros do traçado original. Rotas do OSRM vêm com milhares de
+ * pontos; com 5 m de tolerância o cruzamento de 80 m continua fiel.
+ */
+export function simplificar(rota: LatLng[], toleranciaM = 5): LatLng[] {
+  if (rota.length <= 2) return rota;
+  const manter = new Uint8Array(rota.length);
+  manter[0] = 1;
+  manter[rota.length - 1] = 1;
+  const pilha: [number, number][] = [[0, rota.length - 1]];
+  while (pilha.length > 0) {
+    const [inicio, fim] = pilha.pop()!;
+    let maior = 0;
+    let indice = -1;
+    for (let i = inicio + 1; i < fim; i++) {
+      const d = distanciaAteSegmentoM(rota[i], rota[inicio], rota[fim]);
+      if (d > maior) {
+        maior = d;
+        indice = i;
+      }
+    }
+    if (indice !== -1 && maior > toleranciaM) {
+      manter[indice] = 1;
+      pilha.push([inicio, indice], [indice, fim]);
+    }
+  }
+  return rota.filter((_, i) => manter[i] === 1);
+}

@@ -186,6 +186,16 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
   };
 
   const api: Api = {
+    modoLogin: 'codigo',
+
+    async entrarAnonimo() {
+      throw new ErroApi('nao-suportado', 'O modo de teste local entra por código.');
+    },
+
+    async registrarAssinaturaPush() {
+      // Sem servidor no mock: o push é simulado pelas ferramentas de teste.
+    },
+
     async solicitarCodigo(telefone) {
       await esperar();
       const digitos = telefone.replace(/\D/g, '');
@@ -205,7 +215,12 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
       const usuario: Usuario =
         banco.usuario && banco.usuario.telefone === digitos
           ? banco.usuario
-          : { id: `usuario-${digitos}`, telefone: digitos, criadoEm: agora().toISOString() };
+          : {
+              id: `usuario-${digitos}`,
+              telefone: digitos,
+              anonimo: false,
+              criadoEm: agora().toISOString(),
+            };
       banco.usuario = usuario;
       salvar();
       return usuario;
@@ -275,6 +290,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
         diasSemana: [...new Set(dados.diasSemana)].sort(),
         horaInicio: dados.horaInicio,
         horaFim: dados.horaFim,
+        fuso: dados.fuso,
         ativo: true,
         criadoEm: agora().toISOString(),
       };

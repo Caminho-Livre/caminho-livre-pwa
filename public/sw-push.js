@@ -1,7 +1,7 @@
 /* Carregado pelo service worker gerado (workbox importScripts).
-   Hoje só trata o clique na notificação. O evento "push" já está aqui para
-   quando o backend real enviar Web Push (VAPID): o payload esperado é
-   { "titulo": "...", "corpo": "...", "url": "/alerta/<id>" }. */
+   Recebe o Web Push enviado por api/notificar.ts, mostra a notificação e
+   repassa o conteúdo para as abas abertas do app (aviso dentro do app).
+   Payload esperado: { "alertaId", "titulo", "corpo", "url" }. */
 
 self.addEventListener('push', (evento) => {
   let dados = {};
@@ -10,14 +10,26 @@ self.addEventListener('push', (evento) => {
   } catch (_) {
     dados = { titulo: 'Caminho Livre', corpo: evento.data ? evento.data.text() : '' };
   }
+  const titulo = dados.titulo || 'Caminho Livre';
+  const url = dados.url || '/';
+
   evento.waitUntil(
-    self.registration.showNotification(dados.titulo || 'Caminho Livre', {
-      body: dados.corpo || '',
-      icon: '/icone-192.png',
-      badge: '/icone-192.png',
-      tag: dados.url || 'caminho-livre',
-      data: { url: dados.url || '/' },
-    }),
+    Promise.all([
+      self.registration.showNotification(titulo, {
+        body: dados.corpo || '',
+        icon: '/icone-192.png',
+        badge: '/icone-192.png',
+        tag: url,
+        renotify: true,
+        requireInteraction: false,
+        data: { url },
+      }),
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+        for (const janela of janelas) {
+          janela.postMessage({ tipo: 'caminho-livre:push', ...dados, titulo, url });
+        }
+      }),
+    ]),
   );
 });
 

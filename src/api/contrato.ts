@@ -5,6 +5,7 @@ import type {
   LatLng,
   Lugar,
   NovoRelato,
+  AssinaturaPush,
   NovoTrajeto,
   OpcaoRota,
   PushAlerta,
@@ -22,8 +23,14 @@ import type {
  */
 export interface Api {
   // --- Sessão ---------------------------------------------------------
+  /**
+   * Como se entra: por código (SMS) ou sem cadastro (conta de teste anônima,
+   * usada com o Supabase enquanto não há SMS).
+   */
+  readonly modoLogin: 'codigo' | 'anonimo';
   solicitarCodigo(telefone: string): Promise<void>;
   confirmarCodigo(telefone: string, codigo: string): Promise<Usuario>;
+  entrarAnonimo(): Promise<Usuario>;
   usuarioAtual(): Promise<Usuario | null>;
   sair(): Promise<void>;
 
@@ -50,6 +57,8 @@ export interface Api {
   atividadeRecente(): Promise<Atividade>;
 
   // --- Push ---------------------------------------------------------------
+  /** Guarda a assinatura Web Push deste aparelho para o servidor poder avisar. */
+  registrarAssinaturaPush(assinatura: AssinaturaPush): Promise<void>;
   /**
    * Registra um ouvinte para pushes recebidos com o app aberto e devolve a
    * função que cancela o registro. No backend real isso vira Web Push: o

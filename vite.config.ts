@@ -44,6 +44,11 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Com o Supabase o pacote passa de 500 kB (≈250 kB com gzip): aceitável
+    // para o teste, e o service worker guarda tudo depois da primeira visita.
+    chunkSizeWarningLimit: 1000,
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

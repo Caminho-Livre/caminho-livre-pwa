@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PushAlerta } from '../tipos';
 import { CODIGO_DE_TESTE, criarApiMock } from './mockApi';
 
@@ -11,6 +11,13 @@ async function logado() {
 }
 
 describe('mock da API', () => {
+  // Domingo ao meio-dia: só o trajeto "todos os dias" vale, o de seg a sex não.
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 4, 12, 0));
+  });
+  afterAll(() => vi.useRealTimers());
+
   it('recusa código errado e telefone curto', async () => {
     const { api } = criarApiMock({ latenciaMs: 0 });
     await expect(api.solicitarCodigo('123')).rejects.toMatchObject({ codigo: 'telefone-invalido' });

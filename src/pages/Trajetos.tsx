@@ -7,7 +7,7 @@ import { Icone } from '../components/Icone';
 import { useConsulta } from '../hooks/useConsulta';
 import { invalidar } from '../lib/eventos';
 import { agora } from '../lib/relogio';
-import { dentroDaJanela, resumoDias, resumoJanela } from '../lib/tempo';
+import { resumoDias, resumoJanela, trajetoValendo } from '../lib/tempo';
 
 async function carregar() {
   const [trajetos, noCaminho] = await Promise.all([api.listarTrajetos(), api.alertasNoCaminho()]);
@@ -31,7 +31,7 @@ export default function Trajetos() {
 
   function situacao(trajeto: Trajeto): { texto: string; destaque: boolean } {
     if (!trajeto.ativo) return { texto: 'Avisos desligados', destaque: false };
-    if (!dentroDaJanela(trajeto.diasSemana, trajeto.horaInicio, trajeto.horaFim, instante)) {
+    if (!trajetoValendo(trajeto, instante)) {
       return { texto: 'Fora do horário agora', destaque: false };
     }
     const alertas = dados?.noCaminho.filter((item) => item.trajetoId === trajeto.id).length ?? 0;

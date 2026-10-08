@@ -6,6 +6,7 @@ import { Carregando } from './components/Estrutura';
 import { ProvedorSessao, useSessao } from './hooks/useSessao';
 import { invalidar } from './lib/eventos';
 import { notificarSistema } from './lib/notificacoes';
+import { sincronizarPush } from './lib/push';
 import Alerta from './pages/Alerta';
 import Conta from './pages/Conta';
 import Entrar from './pages/Entrar';
@@ -17,6 +18,11 @@ import Trajetos from './pages/Trajetos';
 /** Telas que exigem login. */
 function Protegidas() {
   const { usuario, carregando } = useSessao();
+  const usuarioId = usuario?.id;
+  // Com permissão já dada, garante que o servidor tem a assinatura deste aparelho.
+  useEffect(() => {
+    if (usuarioId) void sincronizarPush();
+  }, [usuarioId]);
   if (carregando) return <Carregando />;
   if (!usuario) return <Navigate to="/entrar" replace />;
   return <Outlet />;
@@ -35,7 +41,7 @@ function OuvintePush() {
     () =>
       api.aoReceberPush((push) => {
         avisar({ titulo: push.titulo, texto: push.corpo, para: push.url, tom: 'alerta' }, 8000);
-        void notificarSistema(push.titulo, push.corpo, push.url);
+        if (!push.jaNotificado) void notificarSistema(push.titulo, push.corpo, push.url);
         invalidar();
       }),
     [],

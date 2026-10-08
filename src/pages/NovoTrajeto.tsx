@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api';
+import { api, ehMock } from '../api';
 import type { Lugar, OpcaoRota } from '../api/tipos';
 import { avisar } from '../components/Avisos';
 import { Cabecalho, Erro } from '../components/Estrutura';
 import { Mapa } from '../components/Mapa';
 import { invalidar } from '../lib/eventos';
+import { obterPosicao } from '../lib/localizacao';
 
 // Semana começando na segunda. O valor é o de Date.getDay (0 = domingo).
 const DIAS: { valor: number; letra: string; nome: string }[] = [
@@ -30,40 +31,91 @@ function SeletorLugar({
   aoEscolher: (lugar: Lugar | null) => void;
 }) {
   const [texto, setTexto] = useState('');
-  const [sugestoes, setSugestoes] = useState<Lugar[]>([]);
-  const [aberto, setAberto] = useState(false);
+  const [sugestoes, setSugestoes] = useState<Lugar[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!aberto) return;
-    let vivo = true;
-    api.buscarLugares(texto).then((lista) => vivo && setSugestoes(lista.slice(0, 6)));
-    return () => {
-      vivo = false;
-    };
-  }, [texto, aberto]);
+  async function executar(acao: () => Promise<void>) {
+    setErro(null);
+    setBuscando(true);
+    try {
+      await acao();
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : 'Não consegui buscar.');
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  // A busca roda ao confirmar (Enter ou botão), não a cada tecla: o serviço
+  // gratuito de endereços não permite busca enquanto se digita.
+  function buscar(evento: FormEvent) {
+    evento.preventDefault();
+    void executar(async () => setSugestoes(await api.buscarLugares(texto)));
+  }
+
+  function usarMinhaPosicao() {
+    void executar(async () => {
+      const { posicao } = await obterPosicao();
+      const descricao = await api.descreverLocal(posicao);
+      aoEscolher({ id: `posicao-${id}`, nome: descricao.replace(/^Perto de /, ''), posicao });
+      setSugestoes(null);
+    });
+  }
+
+  if (escolhido) {
+    return (
+      <div className="seletor">
+        <span className="rotulo">{rotulo}</span>
+        <div className="seletor__escolhido">
+          <span className="seletor__nome">{escolhido.nome}</span>
+          <button
+            type="button"
+            className="botao-pequeno"
+            onClick={() => {
+              aoEscolher(null);
+              setSugestoes(null);
+            }}
+          >
+            Trocar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="seletor">
+    <form className="seletor" role="search" onSubmit={buscar}>
       <label className="rotulo" htmlFor={id}>
         {rotulo}
       </label>
-      <input
-        id={id}
-        className="campo"
-        type="text"
-        autoComplete="off"
-        placeholder="Bairro ou lugar"
-        value={escolhido ? escolhido.nome : texto}
-        onFocus={() => setAberto(true)}
-        onChange={(e) => {
-          aoEscolher(null);
-          setTexto(e.target.value);
-          setAberto(true);
-        }}
-      />
-      {aberto && !escolhido ? (
+      <div className="seletor__linha">
+        <input
+          id={id}
+          className="campo"
+          type="search"
+          autoComplete="off"
+          enterKeyHint="search"
+          placeholder="Endereço, bairro ou lugar"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+        />
+        <button className="botao-pequeno" type="submit" disabled={buscando}>
+          Buscar
+        </button>
+      </div>
+      <button className="botao-texto botao-texto--esquerda" type="button" onClick={usarMinhaPosicao} disabled={buscando}>
+        Usar minha localização
+      </button>
+      {erro ? <Erro>{erro}</Erro> : null}
+      {buscando ? <p className="mudo">Buscando…</p> : null}
+      {sugestoes ? (
         <ul className="sugestoes">
-          {sugestoes.length === 0 ? <li className="sugestoes__vazio">Nenhum lugar com esse nome.</li> : null}
+          {sugestoes.length === 0 ? (
+            <li className="sugestoes__vazio">
+              {texto.trim().length < 3 && !ehMock ? 'Digite pelo menos 3 letras.' : 'Nada encontrado com esse nome.'}
+            </li>
+          ) : null}
           {sugestoes.map((lugar) => (
             <li key={lugar.id}>
               <button
@@ -71,7 +123,7 @@ function SeletorLugar({
                 onClick={() => {
                   aoEscolher(lugar);
                   setTexto('');
-                  setAberto(false);
+                  setSugestoes(null);
                 }}
               >
                 {lugar.nome}
@@ -80,7 +132,7 @@ function SeletorLugar({
           ))}
         </ul>
       ) : null}
-    </div>
+    </form>
   );
 }
 
@@ -134,6 +186,7 @@ export default function NovoTrajeto() {
         diasSemana: dias,
         horaInicio,
         horaFim,
+        fuso: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       invalidar();
       avisar({ titulo: 'Trajeto salvo', texto: 'Os avisos deste caminho já estão ligados.' });

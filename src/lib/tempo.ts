@@ -61,3 +61,40 @@ export function quantoFalta(iso: string, agora: Date): string | null {
   const horas = Math.round(minutos / 60);
   return `${horas} h`;
 }
+
+const DIAS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Data "de parede" no fuso pedido: um Date cujos getDay/getHours/getMinutes
+ * locais mostram a hora daquele fuso. Serve só para comparar com janelas.
+ */
+export function horaNoFuso(agora: Date, fuso: string | undefined): Date {
+  if (!fuso) return agora;
+  try {
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: fuso,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(agora);
+    const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? '';
+    const dia = DIAS_EN.indexOf(valor('weekday'));
+    if (dia < 0) return agora;
+    // Um domingo qualquer (4/10/2026) mais o dia da semana do fuso.
+    return new Date(2026, 9, 4 + dia, Number(valor('hour')), Number(valor('minute')));
+  } catch {
+    return agora;
+  }
+}
+
+/** O trajeto está ligado e dentro da janela, na hora local de quem o criou? */
+export function trajetoValendo(
+  trajeto: { ativo: boolean; diasSemana: number[]; horaInicio: string; horaFim: string; fuso?: string },
+  agora: Date,
+): boolean {
+  return (
+    trajeto.ativo &&
+    dentroDaJanela(trajeto.diasSemana, trajeto.horaInicio, trajeto.horaFim, horaNoFuso(agora, trajeto.fuso))
+  );
+}

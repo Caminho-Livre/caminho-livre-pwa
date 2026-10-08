@@ -1,113 +1,100 @@
-# Caminho Livre — base do PWA
+# caminho-livre-pwa
 
-App web (PWA) em React + TypeScript + Vite. Não há backend: todas as chamadas
-de API caem num mock interno que guarda os dados no `localStorage` do
-navegador. O nome "Caminho Livre" é provisório.
+App web (PWA) do Caminho Livre em React + TypeScript + Vite. Publicado na
+Vercel como site estático. O backend está no projeto `caminho-livre-api`
+(Supabase).
 
-## Rodar
+O app roda de dois jeitos:
+
+- **Mock local:** sem variáveis de ambiente, tudo fica no navegador. Bom para
+  mexer nas telas.
+- **Com o Supabase:** com as três variáveis abaixo, fala com o
+  `caminho-livre-api`.
+
+O nome "Caminho Livre" é provisório.
+
+## Rodar na sua máquina
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-```
-
-Outros comandos:
-
-```bash
-npm test           # testes das regras, da geometria e do mock
-npm run build      # checa tipos e gera dist/ com service worker e manifest
+npm test
+npm run build      # checa tipos e gera dist/
 npm run preview    # serve o dist/ em http://localhost:4173
 ```
 
-O service worker só existe no build. Para testar instalação na tela inicial e
-notificações do sistema, use `npm run build && npm run preview`.
+Para falar com o Supabase localmente, copie `.env.example` para `.env.local` e
+preencha. Notificações só funcionam na versão publicada ou no `npm run preview`.
 
-## Como testar o fluxo
+## Publicar na Vercel
+
+1. Coloque o `caminho-livre-api` no ar primeiro (veja o README dele).
+2. Suba esta pasta para um repositório no GitHub e importe na Vercel. Ela
+   reconhece o Vite sozinha; o `vercel.json` cuida das rotas do app.
+3. Em **Settings → Environment Variables**, cadastre:
+
+| Variável | Valor |
+| --- | --- |
+| `VITE_SUPABASE_URL` | URL do projeto Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | chave publishable (`sb_publishable_…`) |
+| `VITE_VAPID_PUBLIC_KEY` | chave VAPID **pública** (a mesma cadastrada no Supabase) |
+
+São as únicas. Todas são públicas: entram no app na hora do build, então
+depois de mudar alguma, faça um novo deploy.
+
+## Testar com outras pessoas
+
+Abra a URL `https://` da Vercel no celular, toque em **Começar a testar** e,
+em **Conta**, em **Ligar notificações**. No iPhone, antes adicione o app à Tela
+de Início (Compartilhar → Adicionar à Tela de Início): sem isso o iOS não
+entrega notificação.
+
+Para ver o push são precisos dois aparelhos: um salva um trajeto, o outro
+relata algo em cima dele.
+
+## Serviços externos
+
+O app usa diretamente, sem chave, serviços públicos do OpenStreetMap:
+
+- **OSRM** (servidor de demonstração) para rotas.
+- **Nominatim** para busca de endereço e nome do local do relato. O limite é
+  de uma busca por segundo e não pode buscar enquanto se digita; o app
+  respeita as duas regras.
+- **Tiles do OpenStreetMap** para o mapa.
+
+São gratuitos com regra de uso justo: servem para um grupo de teste. Para
+crescer, troque por um provedor (Mapbox, MapTiler, OpenRouteService) em
+`src/api/supabase/supabaseApi.ts` e `URL_TILES` em `src/components/Mapa.tsx`.
+
+## Modo mock
 
 1. Entre com qualquer celular com DDD (ex.: `61 90000-0000`) e o código `123456`.
-2. Vá em **Conta → Carregar dados de exemplo**: dois trajetos e três alertas no
-   DF, um deles em cima do trajeto "Casa → Trabalho".
-3. **Simular relato no meu trajeto** faz o papel de outro usuário reportando
-   algo no seu caminho. O aviso chega pelo mesmo caminho que um push real.
-4. **Simular relato fora do trajeto** cria um alerta que aparece no mapa, mas
-   não avisa.
-5. **Relógio +30 min** adianta a hora do app para ver alertas expirando.
+2. **Conta → Carregar dados de exemplo:** dois trajetos e três alertas no DF.
+3. **Simular relato no meu trajeto:** outro usuário reporta no seu caminho e o
+   aviso chega pelo mesmo caminho que um push.
+4. **Simular relato fora do trajeto:** aparece no mapa, não avisa.
+5. **Relógio +30 min:** adianta a hora para ver alertas expirando.
 
-A **posição simulada** vem ligada: seus relatos saem de um ponto do seu trajeto
-no DF. Desligue na tela Conta para usar o GPS do aparelho.
+A posição simulada vem ligada no mock: seus relatos saem de um ponto do seu
+trajeto no DF.
 
 ## Estrutura
 
 ```
 src/
   api/
-    contrato.ts        interface Api: o contrato entre telas e backend
-    tipos.ts           Trajeto, Relato, Alerta…
-    index.ts           ponto único de troca entre mock e backend real
-    mock/
-      mockApi.ts       implementação mock + ferramentas de teste
-      regras.ts        agrupamento de relatos, TTL, "ainda está lá?", cruzamento
-      lugares.ts       lugares do DF para a busca (coordenadas aproximadas)
-  lib/
-    geo.ts             distância ponto–rota (o ST_DWithin local)
-    tempo.ts           janela de dias e horário, textos de tempo
-    relogio.ts         relógio único (permite adiantar no teste)
-    localizacao.ts     GPS ou posição simulada
-    notificacoes.ts    permissão e notificação do sistema
-  components/          Mapa (Leaflet), Avisos, abas, ícones
-  pages/               Entrar, Inicio, Reportar, Alerta, Trajetos, NovoTrajeto, Conta
-public/
-  sw-push.js           clique em notificação e evento "push" (para o Web Push real)
+    contrato.ts          interface Api: o contrato entre telas e backend
+    tipos.ts             Trajeto, Relato, Alerta…
+    index.ts             escolhe mock ou Supabase pelas variáveis de ambiente
+    mock/                implementação local + regras em TypeScript
+    supabase/            implementação com Supabase, OSRM e Nominatim
+  lib/                   geometria, janelas de horário com fuso, push, localização
+  components/            Mapa (Leaflet), avisos, abas, ícones
+  pages/                 as telas
+public/sw-push.js        recebe o push no service worker e abre o alerta ao tocar
 ```
 
-## Trocar o mock pelo backend
-
-As telas só importam de `src/api/index.ts`. Para ligar na API real:
-
-1. Crie `src/api/http/httpApi.ts` implementando a interface `Api` com `fetch`.
-2. Em `src/api/index.ts`, exporte essa implementação no lugar do mock e ponha
-   `ehMock = false` (some a seção de ferramentas de teste e a posição simulada).
-3. `aoReceberPush` passa a ouvir mensagens do service worker; o evento `push`
-   já está tratado em `public/sw-push.js` e espera o payload
-   `{ "titulo", "corpo", "url" }`.
-
-`src/api/mock/regras.ts` é a especificação do comportamento que o backend
-precisa reproduzir. Os parâmetros estão no objeto `REGRAS`:
-
-| Parâmetro | Valor inicial |
-| --- | --- |
-| Distância máxima entre alerta e rota | 80 m |
-| Raio para juntar relatos do mesmo tipo | 150 m |
-| Relatos para o alerta aparecer | 1 |
-| Negativas para derrubar o alerta | 1 |
-| Validade: blitz / radar / bloqueio / acidente | 40 / 60 / 120 / 60 min |
-
-## O que é de mentira no mock
-
-- **Login:** nenhum SMS é enviado; o código é sempre `123456`.
-- **Rotas:** não há roteador. As duas opções de caminho são curvas entre origem
-  e destino, não ruas de verdade.
-- **Lugares:** uma lista fixa de 17 pontos do DF.
-- **Push:** só chega com o app aberto, disparado pelas ferramentas de teste.
-- **Outros usuários:** não existem; os relatos deles são simulados.
-
-## Testar no celular
-
-Service worker, notificações e GPS exigem HTTPS (ou `localhost`). Para abrir no
-celular, publique o `dist/` num host estático com HTTPS e fallback de SPA para
-`index.html`, ou use um túnel HTTPS para a sua máquina. Pelo IP da rede local
-em HTTP o app abre, mas sem instalação, notificação e GPS.
-
-No iPhone, notificações só funcionam depois de adicionar o app à Tela de Início.
-
-### Vercel
-
-O `vercel.json` manda toda rota que não for arquivo para o `index.html`. Sem
-isso, abrir direto `/trajetos` ou o link de uma notificação (`/alerta/…`) dá 404.
-A Vercel reconhece o Vite sozinha: build `npm run build`, saída `dist`.
-
-## Mapa
-
-O mapa usa Leaflet com os tiles públicos do OpenStreetMap, escurecidos por um
-filtro CSS. Serve para desenvolvimento; para produção, troque `URL_TILES` em
-`src/components/Mapa.tsx` por um provedor contratado ou tiles próprios.
+Para trocar o Supabase pela API Java no futuro, implemente `Api` com `fetch`
+em `src/api/` e escolha essa implementação em `src/api/index.ts`. As funções
+SQL do `caminho-livre-api` e `src/api/mock/regras.ts` descrevem o
+comportamento que a API precisa manter.

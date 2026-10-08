@@ -3,7 +3,7 @@
 // Spring, este arquivo é a especificação do comportamento.
 
 import { distanciaAteRotaM, distanciaM } from '../../lib/geo';
-import { dentroDaJanela } from '../../lib/tempo';
+import { trajetoValendo } from '../../lib/tempo';
 import type { LatLng, StatusAlerta, TipoAlerta, Trajeto } from '../tipos';
 
 /** Parâmetros para calibrar. Comece permissivo e aperte conforme a base cresce. */
@@ -154,10 +154,7 @@ export function registrarResposta(
 }
 
 export function trajetoValeAgora(trajeto: Trajeto, agora: Date): boolean {
-  return (
-    trajeto.ativo &&
-    dentroDaJanela(trajeto.diasSemana, trajeto.horaInicio, trajeto.horaFim, agora)
-  );
+  return trajetoValendo(trajeto, agora);
 }
 
 /**

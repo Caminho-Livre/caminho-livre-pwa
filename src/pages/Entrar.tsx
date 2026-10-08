@@ -19,24 +19,34 @@ export default function Entrar() {
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const anonimo = api.modoLogin === 'anonimo';
 
-  async function enviar(evento: FormEvent) {
-    evento.preventDefault();
+  async function executar(acao: () => Promise<void>) {
     setErro(null);
     setEnviando(true);
     try {
-      if (etapa === 'telefone') {
+      await acao();
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : 'Algo deu errado. Tente de novo.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    void executar(async () => {
+      if (anonimo) {
+        entrar(await api.entrarAnonimo());
+        navegar('/', { replace: true });
+      } else if (etapa === 'telefone') {
         await api.solicitarCodigo(telefone);
         setEtapa('codigo');
       } else {
         entrar(await api.confirmarCodigo(telefone, codigo));
         navegar('/', { replace: true });
       }
-    } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : 'Algo deu errado. Tente de novo.');
-    } finally {
-      setEnviando(false);
-    }
+    });
   }
 
   return (
@@ -58,7 +68,11 @@ export default function Entrar() {
       </div>
 
       <form className="entrar__form" onSubmit={enviar} noValidate>
-        {etapa === 'telefone' ? (
+        {anonimo ? (
+          <p className="nota-teste">
+            Versão de teste: sem cadastro. O app cria uma conta só para este aparelho.
+          </p>
+        ) : etapa === 'telefone' ? (
           <>
             <label className="rotulo" htmlFor="telefone">
               Seu celular
@@ -107,10 +121,10 @@ export default function Entrar() {
         {erro ? <Erro>{erro}</Erro> : null}
 
         <button className="botao" type="submit" disabled={enviando}>
-          {etapa === 'telefone' ? 'Receber código por SMS' : 'Entrar'}
+          {anonimo ? 'Começar a testar' : etapa === 'telefone' ? 'Receber código por SMS' : 'Entrar'}
         </button>
 
-        {etapa === 'codigo' ? (
+        {anonimo ? null : etapa === 'codigo' ? (
           <button
             className="botao-texto"
             type="button"

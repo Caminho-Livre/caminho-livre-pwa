@@ -12,7 +12,10 @@ export type StatusAlerta = 'ativo' | 'expirado' | 'derrubado';
 
 export interface Usuario {
   id: string;
-  telefone: string;
+  /** Só existe no login por código. */
+  telefone: string | null;
+  /** Conta de teste criada sem cadastro (login anônimo do Supabase). */
+  anonimo: boolean;
   criadoEm: string;
 }
 
@@ -43,6 +46,8 @@ export interface Trajeto {
   horaInicio: string;
   /** "HH:MM" */
   horaFim: string;
+  /** Fuso de quem criou; a janela de horário vale na hora local dele. */
+  fuso?: string;
   ativo: boolean;
   criadoEm: string;
 }
@@ -55,6 +60,7 @@ export interface NovoTrajeto {
   diasSemana: number[];
   horaInicio: string;
   horaFim: string;
+  fuso?: string;
 }
 
 export interface Relato {
@@ -71,6 +77,8 @@ export interface NovoRelato {
   tipo: TipoAlerta;
   posicao: LatLng;
   detalhes: string[];
+  /** Texto do local ("Perto de …") já calculado pelo app. */
+  descricaoLocal?: string;
 }
 
 /** Agregado de relatos do mesmo tipo, próximos no espaço e no tempo. */
@@ -107,4 +115,12 @@ export interface PushAlerta {
   titulo: string;
   corpo: string;
   url: string;
+  /** O service worker já mostrou a notificação do sistema. */
+  jaNotificado?: boolean;
+}
+
+export interface AssinaturaPush {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }

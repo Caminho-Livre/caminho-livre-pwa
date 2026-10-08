@@ -6,7 +6,7 @@ import { Mapa, type PinoNoMapa } from '../components/Mapa';
 import { useConsulta } from '../hooks/useConsulta';
 import { agora } from '../lib/relogio';
 import { NOME_TIPO } from '../lib/rotulos';
-import { dentroDaJanela, haQuanto, resumoDias, resumoJanela } from '../lib/tempo';
+import { haQuanto, resumoDias, resumoJanela, trajetoValendo } from '../lib/tempo';
 
 async function carregar() {
   const [trajetos, alertas, noCaminho, atividade] = await Promise.all([
@@ -26,9 +26,7 @@ export default function Inicio() {
   const trajetos = dados?.trajetos ?? [];
   const noCaminho = dados?.noCaminho ?? [];
   const emFoco =
-    trajetos.find(
-      (t) => t.ativo && dentroDaJanela(t.diasSemana, t.horaInicio, t.horaFim, instante),
-    ) ?? null;
+    trajetos.find((t) => trajetoValendo(t, instante)) ?? null;
   const idsNoCaminho = new Set(noCaminho.map((item) => item.alerta.id));
 
   const pinos: PinoNoMapa[] = (dados?.alertas ?? []).map((alerta) => ({

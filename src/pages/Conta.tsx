@@ -6,17 +6,18 @@ import { BarraAbas } from '../components/Estrutura';
 import { useSessao } from '../hooks/useSessao';
 import { invalidar } from '../lib/eventos';
 import { definirModoPosicao, modoPosicao, type ModoPosicao } from '../lib/localizacao';
-import { estadoPermissao, pedirPermissao, type EstadoPermissao } from '../lib/notificacoes';
+import { estadoPermissao } from '../lib/notificacoes';
+import { ativarPush, TEXTO_RESULTADO_PUSH } from '../lib/push';
 import { adiantarRelogio, minutosAdiantados, zerarRelogio } from '../lib/relogio';
 import { NOME_TIPO } from '../lib/rotulos';
 
-const TEXTO_PERMISSAO: Record<EstadoPermissao, string> = {
-  granted: 'Ligadas neste aparelho.',
-  denied: 'Bloqueadas. Libere nas configurações do navegador para este site.',
-  default: 'Desligadas. Sem elas você só vê os alertas com o app aberto.',
-  indisponivel:
-    'Este navegador não oferece notificações aqui. No iPhone, adicione o app à Tela de Início primeiro.',
-};
+function textoInicialPermissao(): string {
+  const estado = estadoPermissao();
+  if (estado === 'granted') return TEXTO_RESULTADO_PUSH.ativado;
+  if (estado === 'denied') return TEXTO_RESULTADO_PUSH.negado;
+  if (estado === 'indisponivel') return TEXTO_RESULTADO_PUSH['sem-suporte'];
+  return 'Desligadas. Sem elas você só vê os alertas com o app aberto.';
+}
 
 function formatarTelefone(digitos: string): string {
   const d = digitos.replace(/\D/g, '');
@@ -27,7 +28,8 @@ function formatarTelefone(digitos: string): string {
 export default function Conta() {
   const { usuario, sair } = useSessao();
   const navegar = useNavigate();
-  const [permissao, setPermissao] = useState<EstadoPermissao>(estadoPermissao());
+  const [textoPush, setTextoPush] = useState(textoInicialPermissao());
+  const [ligandoPush, setLigandoPush] = useState(false);
   const [posicao, setPosicao] = useState<ModoPosicao>(modoPosicao());
   const [adiantado, setAdiantado] = useState(minutosAdiantados());
 
@@ -61,21 +63,37 @@ export default function Conta() {
       <main className="tela__rolagem tela__rolagem--topo">
         <h1 className="titulo-medio">Conta</h1>
 
-        <section className="bloco">
-          <h2 className="secao">Seu celular</h2>
-          <p className="subtitulo">+55 {usuario ? formatarTelefone(usuario.telefone) : ''}</p>
-        </section>
+        {usuario?.anonimo ? (
+          <section className="bloco">
+            <h2 className="secao">Conta de teste</h2>
+            <p className="mudo">
+              Criada sem cadastro neste aparelho (código {usuario.id.slice(0, 8)}). Se você sair ou
+              limpar os dados do navegador, ela não volta e seus trajetos somem.
+            </p>
+          </section>
+        ) : (
+          <section className="bloco">
+            <h2 className="secao">Seu celular</h2>
+            <p className="subtitulo">+55 {usuario?.telefone ? formatarTelefone(usuario.telefone) : ''}</p>
+          </section>
+        )}
 
         <section className="bloco">
           <h2 className="secao">Notificações</h2>
-          <p className="mudo">{TEXTO_PERMISSAO[permissao]}</p>
-          {permissao === 'default' ? (
+          <p className="mudo">{textoPush}</p>
+          {estadoPermissao() !== 'denied' ? (
             <button
               className="botao botao--secundario"
               type="button"
-              onClick={async () => setPermissao(await pedirPermissao())}
+              disabled={ligandoPush}
+              onClick={async () => {
+                setLigandoPush(true);
+                const resultado = await ativarPush();
+                setTextoPush(TEXTO_RESULTADO_PUSH[resultado]);
+                setLigandoPush(false);
+              }}
             >
-              Ligar notificações
+              {estadoPermissao() === 'granted' ? 'Reativar notificações' : 'Ligar notificações'}
             </button>
           ) : null}
         </section>
@@ -171,6 +189,12 @@ export default function Conta() {
           className="botao-texto"
           type="button"
           onClick={async () => {
+            if (
+              usuario?.anonimo &&
+              !window.confirm('Sair apaga o acesso a esta conta de teste e aos seus trajetos. Continuar?')
+            ) {
+              return;
+            }
             await sair();
             navegar('/entrar', { replace: true });
           }}
