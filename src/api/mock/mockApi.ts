@@ -317,10 +317,13 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
       salvar();
     },
 
-    async listarAlertas() {
+    async listarAlertas(regiao) {
       await esperar();
       atualizarValidade();
-      return banco.alertas.filter(visivel).map(paraAlerta);
+      const limite = regiao.raioKm * 1000;
+      return banco.alertas
+        .filter((a) => visivel(a) && distanciaM(a.posicao, regiao.centro) <= limite)
+        .map(paraAlerta);
     },
 
     async obterAlerta(id) {
@@ -369,12 +372,14 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
       return paraAlerta(resultado.alerta);
     },
 
-    async atividadeRecente() {
+    async atividadeRecente(regiao) {
       await esperar();
-      const limite = agora().getTime() - 60 * 60_000;
+      const desde = agora().getTime() - 60 * 60_000;
+      const raio = regiao.raioKm * 1000;
       return {
-        relatosUltimaHora: banco.relatos.filter((r) => new Date(r.criadoEm).getTime() >= limite)
-          .length,
+        relatosUltimaHora: banco.relatos.filter(
+          (r) => new Date(r.criadoEm).getTime() >= desde && distanciaM(r.posicao, regiao.centro) <= raio,
+        ).length,
       };
     },
 

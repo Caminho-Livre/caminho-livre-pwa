@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { PushAlerta } from '../tipos';
+import { CENTRO_PADRAO } from '../../lib/geo';
 import { CODIGO_DE_TESTE, criarApiMock } from './mockApi';
+
+const DF = { centro: CENTRO_PADRAO, raioKm: 50 };
+const MALAGA = { centro: { lat: 36.72, lng: -4.42 }, raioKm: 50 };
 
 async function logado() {
   const mock = criarApiMock({ latenciaMs: 0 });
@@ -30,12 +34,12 @@ describe('mock da API', () => {
     const { api, ferramentas } = await logado();
     await ferramentas.carregarExemplo();
     expect(await api.listarTrajetos()).toHaveLength(2);
-    expect(await api.listarAlertas()).toHaveLength(3);
+    expect(await api.listarAlertas(DF)).toHaveLength(3);
     const noCaminho = await api.alertasNoCaminho();
     expect(noCaminho).toHaveLength(1);
     expect(noCaminho[0].alerta.tipo).toBe('blitz');
     expect(noCaminho[0].trajetoNome).toBe('Casa → Trabalho');
-    expect((await api.atividadeRecente()).relatosUltimaHora).toBe(5);
+    expect((await api.atividadeRecente(DF)).relatosUltimaHora).toBe(5);
   });
 
   it('relato de outra pessoa em cima do trajeto gera push; fora dele, não', async () => {
@@ -63,10 +67,18 @@ describe('mock da API', () => {
     const posicao = ferramentas.posicaoSimulada();
     const { alerta } = await api.criarRelato({ tipo: 'bloqueio', posicao, detalhes: ['Meia pista'] });
     expect(alerta.relatos).toBe(1);
-    expect(await api.listarAlertas()).toHaveLength(1);
+    expect(await api.listarAlertas(DF)).toHaveLength(1);
     const depois = await api.responderAlerta(alerta.id, false);
     expect(depois.status).toBe('derrubado');
-    expect(await api.listarAlertas()).toHaveLength(0);
+    expect(await api.listarAlertas(DF)).toHaveLength(0);
+  });
+
+  it('só lista alertas e atividade da região pedida', async () => {
+    const { api, ferramentas } = await logado();
+    await ferramentas.carregarExemplo();
+    expect(await api.listarAlertas(MALAGA)).toHaveLength(0);
+    expect((await api.atividadeRecente(MALAGA)).relatosUltimaHora).toBe(0);
+    expect(await api.listarAlertas(DF)).toHaveLength(3);
   });
 
   it('cria, desliga e remove trajeto', async () => {

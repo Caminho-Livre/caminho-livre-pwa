@@ -153,3 +153,7 @@ export function simplificar(rota: LatLng[], toleranciaM = 5): LatLng[] {
   }
   return rota.filter((_, i) => manter[i] === 1);
 }
+
+/** Centro do DF: região padrão de quem ainda não tem trajeto. */
+export const CENTRO_PADRAO: LatLng = { lat: -15.8, lng: -47.95 };
+export const RAIO_PADRAO_KM = 50;

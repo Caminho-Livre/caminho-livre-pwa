@@ -105,6 +105,12 @@ export interface AlertaNoCaminho {
   distanciaM: number;
 }
 
+/** Área de interesse: o app só pede alertas e atividade dentro dela. */
+export interface Regiao {
+  centro: LatLng;
+  raioKm: number;
+}
+
 export interface Atividade {
   relatosUltimaHora: number;
 }

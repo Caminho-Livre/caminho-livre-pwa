@@ -76,6 +76,7 @@ export default function Alerta() {
                   { id: alerta.id, tipo: alerta.tipo, posicao: alerta.posicao, noCaminho: Boolean(trajeto) },
                 ]}
                 posicao={null}
+                centro={alerta.posicao}
                 estatico
               />
             </div>

@@ -232,7 +232,12 @@ export function criarApiSupabase(url: string, chave: string, opcoes: OpcoesSupab
       await rpc<null>('remover_trajeto', { p_id: id });
     },
 
-    listarAlertas: () => rpc<Alerta[]>('listar_alertas'),
+    listarAlertas: (regiao) =>
+      rpc<Alerta[]>('listar_alertas', {
+        p_lat: regiao.centro.lat,
+        p_lng: regiao.centro.lng,
+        p_raio_km: regiao.raioKm,
+      }),
 
     obterAlerta: (id) => rpc<Alerta | null>('obter_alerta', { p_id: id }),
 
@@ -253,7 +258,12 @@ export function criarApiSupabase(url: string, chave: string, opcoes: OpcoesSupab
     responderAlerta: (id, aindaEsta) =>
       rpc<Alerta>('responder_alerta', { p_id: id, p_ainda_esta: aindaEsta }),
 
-    atividadeRecente: () => rpc<Atividade>('atividade_recente'),
+    atividadeRecente: (regiao) =>
+      rpc<Atividade>('atividade_recente', {
+        p_lat: regiao.centro.lat,
+        p_lng: regiao.centro.lng,
+        p_raio_km: regiao.raioKm,
+      }),
 
     async registrarAssinaturaPush(assinatura) {
       await rpc<null>('salvar_assinatura_push', {

@@ -4,18 +4,21 @@ import { BarraAbas, Erro } from '../components/Estrutura';
 import { Icone, ICONE_DO_TIPO } from '../components/Icone';
 import { Mapa, type PinoNoMapa } from '../components/Mapa';
 import { useConsulta } from '../hooks/useConsulta';
+import { regiaoDoUsuario } from '../lib/regiao';
 import { agora } from '../lib/relogio';
 import { NOME_TIPO } from '../lib/rotulos';
 import { haQuanto, resumoDias, resumoJanela, trajetoValendo } from '../lib/tempo';
 
 async function carregar() {
-  const [trajetos, alertas, noCaminho, atividade] = await Promise.all([
-    api.listarTrajetos(),
-    api.listarAlertas(),
+  // A região depende dos trajetos: busca eles primeiro.
+  const trajetos = await api.listarTrajetos();
+  const regiao = regiaoDoUsuario(trajetos, agora());
+  const [alertas, noCaminho, atividade] = await Promise.all([
+    api.listarAlertas(regiao),
     api.alertasNoCaminho(),
-    api.atividadeRecente(),
+    api.atividadeRecente(regiao),
   ]);
-  return { trajetos, alertas, noCaminho, atividade };
+  return { trajetos, regiao, alertas, noCaminho, atividade };
 }
 
 export default function Inicio() {
@@ -29,7 +32,11 @@ export default function Inicio() {
     trajetos.find((t) => trajetoValendo(t, instante)) ?? null;
   const idsNoCaminho = new Set(noCaminho.map((item) => item.alerta.id));
 
-  const pinos: PinoNoMapa[] = (dados?.alertas ?? []).map((alerta) => ({
+  // Alertas da região mais os que caem no caminho (um trajeto longo pode
+  // passar do raio da região).
+  const visiveis = new Map((dados?.alertas ?? []).map((a) => [a.id, a]));
+  for (const item of noCaminho) visiveis.set(item.alerta.id, item.alerta);
+  const pinos: PinoNoMapa[] = [...visiveis.values()].map((alerta) => ({
     id: alerta.id,
     tipo: alerta.tipo,
     posicao: alerta.posicao,
@@ -47,6 +54,8 @@ export default function Inicio() {
           rotas={emFoco ? [{ pontos: emFoco.rota }] : []}
           pinos={pinos}
           aoTocarPino={(id) => navegar(`/alerta/${id}`)}
+          centro={dados?.regiao.centro ?? null}
+          zoomPonto={11}
           folga={{ topo: 120 }}
         />
 
@@ -114,10 +123,10 @@ export default function Inicio() {
         <p className="atividade">
           <span className="atividade__ponto" aria-hidden="true" />
           {relatos === 0
-            ? 'Nenhum relato no DF na última hora'
+            ? 'Nenhum relato na região na última hora'
             : relatos === 1
-              ? '1 relato no DF na última hora'
-              : `${relatos} relatos no DF na última hora`}
+              ? '1 relato na região na última hora'
+              : `${relatos} relatos na região na última hora`}
         </p>
 
         <Link to="/reportar" className="botao">

@@ -35,6 +35,13 @@ interface Props {
   estatico?: boolean;
   /** Espaço em px a deixar livre em cima e embaixo ao enquadrar. */
   folga?: { topo?: number; base?: number };
+  /**
+   * Onde centrar quando não há rota nem posição. Os pinos nunca mexem no
+   * enquadramento: um alerta distante não pode arrastar o mapa até ele.
+   */
+  centro?: LatLng | null;
+  /** Zoom ao centrar num ponto só (posição ou centro). */
+  zoomPonto?: number;
   rotulo: string;
   className?: string;
 }
@@ -48,6 +55,8 @@ export function Mapa({
   aoTocarPino,
   estatico = false,
   folga,
+  centro = null,
+  zoomPonto = 15,
   rotulo,
   className,
 }: Props) {
@@ -58,7 +67,7 @@ export function Mapa({
   const tocar = useRef(aoTocarPino);
   tocar.current = aoTocarPino;
   // As telas montam os arrays a cada render; redesenha só se o conteúdo mudou.
-  const assinatura = JSON.stringify([rotas, pinos, posicao]);
+  const assinatura = JSON.stringify([rotas, pinos, posicao, centro, zoomPonto]);
 
   useEffect(() => {
     if (!elemento.current) return;
@@ -163,23 +172,19 @@ export function Mapa({
     // Enquadra só quando o conteúdo principal muda, para não brigar com quem
     // está arrastando o mapa enquanto os alertas atualizam.
     const principais = rotas.filter((r) => r.estilo !== 'alternativa');
+    const ponto = posicao ?? centro;
     const pontosDeEnquadre: LatLng[] =
-      rotas.length > 0
-        ? rotas.flatMap((r) => r.pontos)
-        : posicao
-          ? [posicao]
-          : pinos.map((p) => p.posicao);
+      rotas.length > 0 ? rotas.flatMap((r) => r.pontos) : ponto ? [ponto] : [];
     const chave = JSON.stringify([
       principais.map((r) => [r.pontos[0], r.pontos[r.pontos.length - 1], r.pontos.length]),
       rotas.length,
-      rotas.length === 0 && posicao ? [posicao.lat.toFixed(4), posicao.lng.toFixed(4)] : null,
-      rotas.length === 0 && !posicao ? pinos.length : null,
+      rotas.length === 0 && ponto ? [ponto.lat.toFixed(4), ponto.lng.toFixed(4), zoomPonto] : null,
     ]);
     if (chave !== ultimoEnquadramento.current && pontosDeEnquadre.length > 0) {
       ultimoEnquadramento.current = chave;
       instancia.invalidateSize();
       if (pontosDeEnquadre.length === 1) {
-        instancia.setView(paraLeaflet(pontosDeEnquadre[0]), 15, { animate: false });
+        instancia.setView(paraLeaflet(pontosDeEnquadre[0]), zoomPonto, { animate: false });
       } else {
         instancia.fitBounds(L.latLngBounds(pontosDeEnquadre.map(paraLeaflet)), {
           paddingTopLeft: [28, (folga?.topo ?? 0) + 28],

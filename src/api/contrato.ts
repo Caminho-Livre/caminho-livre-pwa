@@ -9,6 +9,7 @@ import type {
   NovoTrajeto,
   OpcaoRota,
   PushAlerta,
+  Regiao,
   Relato,
   Trajeto,
   Usuario,
@@ -46,15 +47,16 @@ export interface Api {
   removerTrajeto(id: string): Promise<void>;
 
   // --- Alertas e relatos --------------------------------------------------
-  /** Todos os alertas visíveis na região. */
-  listarAlertas(): Promise<Alerta[]>;
+  /** Alertas visíveis dentro da região (nunca o mundo todo). */
+  listarAlertas(regiao: Regiao): Promise<Alerta[]>;
   obterAlerta(id: string): Promise<Alerta | null>;
   /** Alertas que caem em algum trajeto do usuário que vale agora. */
   alertasNoCaminho(): Promise<AlertaNoCaminho[]>;
   criarRelato(dados: NovoRelato): Promise<{ relato: Relato; alerta: Alerta }>;
   /** Resposta ao "Ainda está lá?". */
   responderAlerta(id: string, aindaEsta: boolean): Promise<Alerta>;
-  atividadeRecente(): Promise<Atividade>;
+  /** Relatos da última hora dentro da região. */
+  atividadeRecente(regiao: Regiao): Promise<Atividade>;
 
   // --- Push ---------------------------------------------------------------
   /** Guarda a assinatura Web Push deste aparelho para o servidor poder avisar. */
