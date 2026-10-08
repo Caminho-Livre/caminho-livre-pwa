@@ -14,8 +14,8 @@ export const REGRAS = {
   raioAgrupamentoM: 150,
   /** Quantas pessoas diferentes precisam relatar para o alerta aparecer. */
   relatosParaAparecer: 1,
-  /** Quantos "não está mais" derrubam o alerta. */
-  negativasParaDerrubar: 1,
+  /** Quantos "não está mais" derrubam o alerta. Quem disse "não" já deixa de vê-lo. */
+  negativasParaDerrubar: 2,
   /** Validade por tipo, em minutos. Um relato novo ou um "sim" renova. */
   ttlMin: { blitz: 40, radar: 60, bloqueio: 120, acidente: 60 } as Record<TipoAlerta, number>,
 };
@@ -62,6 +62,11 @@ export function expirarVencidos(alertas: AlertaGuardado[], agora: Date): AlertaG
 
 export function visivel(alerta: AlertaGuardado): boolean {
   return alerta.status === 'ativo' && alerta.relatores.length >= REGRAS.relatosParaAparecer;
+}
+
+/** Quem disse "não está mais" para de ver o alerta, mesmo antes de ele cair. */
+export function visivelPara(alerta: AlertaGuardado, usuarioId: string): boolean {
+  return visivel(alerta) && !alerta.negaram.includes(usuarioId);
 }
 
 /**

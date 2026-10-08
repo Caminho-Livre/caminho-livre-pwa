@@ -8,7 +8,7 @@ O app roda de dois jeitos:
 
 - **Mock local:** sem variáveis de ambiente, tudo fica no navegador. Bom para
   mexer nas telas.
-- **Com o Supabase:** com as três variáveis abaixo, fala com o
+- **Com o Supabase:** com as variáveis abaixo, fala com o
   `caminho-livre-api`.
 
 O nome "Caminho Livre" é provisório.
@@ -38,19 +38,31 @@ preencha. Notificações só funcionam na versão publicada ou no `npm run previ
 | `VITE_SUPABASE_URL` | URL do projeto Supabase |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | chave publishable (`sb_publishable_…`) |
 | `VITE_VAPID_PUBLIC_KEY` | chave VAPID **pública** (a mesma cadastrada no Supabase) |
+| `VITE_FEEDBACK_WHATSAPP` | opcional: seu WhatsApp, só dígitos com 55 e DDD (ex.: `5561999999999`). Liga o botão "Mandar feedback" na tela Conta |
 
-São as únicas. Todas são públicas: entram no app na hora do build, então
-depois de mudar alguma, faça um novo deploy.
+São as únicas. Todas são públicas: entram no app na hora do build (o número do
+WhatsApp fica visível no código do app), então depois de mudar alguma, faça um
+novo deploy.
 
 ## Testar com outras pessoas
 
-Abra a URL `https://` da Vercel no celular, toque em **Começar a testar** e,
-em **Conta**, em **Ligar notificações**. No iPhone, antes adicione o app à Tela
-de Início (Compartilhar → Adicionar à Tela de Início): sem isso o iOS não
-entrega notificação.
+Mande a URL `https://` da Vercel. O app conduz o resto:
+
+- **Android:** a pessoa entra, salva um trajeto e o app mostra o cartão
+  **Ligue os avisos do celular**, com o botão que pede a permissão. Enquanto os
+  avisos estiverem desligados, o cartão fica no Início e em Trajetos.
+- **iPhone:** no Safari, antes de criar a conta, o app mostra o passo a passo
+  para **Adicionar à Tela de Início**. O iOS só entrega push para app
+  instalado, e o app instalado não enxerga a conta criada no Safari, por isso
+  a instalação vem primeiro. Dá para pular ("Usar no Safari mesmo assim"),
+  mas sem avisos.
 
 Para ver o push são precisos dois aparelhos: um salva um trajeto, o outro
-relata algo em cima dele.
+relata algo em cima dele. Quem liga os avisos ou entra no horário do trajeto
+depois do relato recebe o aviso em até um minuto (varredura do backend).
+
+Tocar no aviso abre o alerta e registra a abertura no banco, para medir o
+teste (veja `supabase/consultas/metricas.sql` no `caminho-livre-api`).
 
 ## Serviços externos
 

@@ -250,6 +250,9 @@ export function criarApiSupabase(url: string, chave: string, opcoes: OpcoesSupab
         p_lng: dados.posicao.lng,
         p_detalhes: dados.detalhes,
         p_descricao: dados.descricaoLocal ?? null,
+        p_precisao_m: dados.gps?.precisaoM ?? null,
+        p_direcao: dados.gps?.direcaoGraus ?? null,
+        p_velocidade: dados.gps?.velocidadeMs ?? null,
       });
       void pedirNotificacao(resultado.alerta.id);
       return resultado;
@@ -271,6 +274,10 @@ export function criarApiSupabase(url: string, chave: string, opcoes: OpcoesSupab
         p_p256dh: assinatura.p256dh,
         p_auth: assinatura.auth,
       });
+    },
+
+    async registrarAberturaPush(alertaId) {
+      await rpc<null>('registrar_abertura_push', { p_alerta: alertaId });
     },
 
     aoReceberPush(ouvinte) {

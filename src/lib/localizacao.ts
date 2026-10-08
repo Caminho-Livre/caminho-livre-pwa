@@ -1,5 +1,5 @@
 import { ehMock, ferramentasDeTeste } from '../api';
-import type { LatLng } from '../api/tipos';
+import type { LatLng, LeituraGps } from '../api/tipos';
 
 const CHAVE = 'caminho-livre:posicao';
 
@@ -29,6 +29,11 @@ export function definirModoPosicao(modo: ModoPosicao): void {
 export interface PosicaoObtida {
   posicao: LatLng;
   simulada: boolean;
+  gps?: LeituraGps;
+}
+
+function numeroOuNulo(valor: number | null | undefined): number | null {
+  return typeof valor === 'number' && Number.isFinite(valor) ? valor : null;
 }
 
 export function obterPosicao(): Promise<PosicaoObtida> {
@@ -42,7 +47,15 @@ export function obterPosicao(): Promise<PosicaoObtida> {
     }
     navigator.geolocation.getCurrentPosition(
       (p) =>
-        resolver({ posicao: { lat: p.coords.latitude, lng: p.coords.longitude }, simulada: false }),
+        resolver({
+          posicao: { lat: p.coords.latitude, lng: p.coords.longitude },
+          simulada: false,
+          gps: {
+            precisaoM: numeroOuNulo(p.coords.accuracy),
+            direcaoGraus: numeroOuNulo(p.coords.heading),
+            velocidadeMs: numeroOuNulo(p.coords.speed),
+          },
+        }),
       (erro) =>
         rejeitar(
           new Error(

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, ehMock } from '../api';
 import type { Lugar, OpcaoRota } from '../api/tipos';
 import { avisar } from '../components/Avisos';
+import { estadoAvisos } from '../lib/push';
 import { Cabecalho, Erro } from '../components/Estrutura';
 import { Mapa } from '../components/Mapa';
 import { invalidar } from '../lib/eventos';
@@ -189,7 +190,12 @@ export default function NovoTrajeto() {
         fuso: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       invalidar();
-      avisar({ titulo: 'Trajeto salvo', texto: 'Os avisos deste caminho já estão ligados.' });
+      avisar(
+        estadoAvisos() === 'ligados'
+          ? { titulo: 'Trajeto salvo', texto: 'Alerta que cair nele, no horário marcado, chega como aviso.' }
+          : { titulo: 'Trajeto salvo', texto: 'Agora falta ligar os avisos do celular.' },
+        5000,
+      );
       navegar('/trajetos', { replace: true });
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não consegui salvar.');

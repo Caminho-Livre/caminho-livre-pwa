@@ -4,18 +4,22 @@ import { api } from '../api';
 import type { Trajeto } from '../api/tipos';
 import { BarraAbas, Carregando, Erro } from '../components/Estrutura';
 import { Icone } from '../components/Icone';
+import { LigarAvisos } from '../components/LigarAvisos';
 import { useConsulta } from '../hooks/useConsulta';
 import { invalidar } from '../lib/eventos';
 import { agora } from '../lib/relogio';
 import { resumoDias, resumoJanela, trajetoValendo } from '../lib/tempo';
 
-async function carregar() {
-  const [trajetos, noCaminho] = await Promise.all([api.listarTrajetos(), api.alertasNoCaminho()]);
-  return { trajetos, noCaminho };
-}
-
 export default function Trajetos() {
-  const { dados, erro, carregando } = useConsulta(carregar, [], { intervaloMs: 30_000 });
+  // A lista (com as rotas) só ao abrir ou quando algo muda; a contagem de
+  // alertas, leve, a cada 30 s.
+  const consultaTrajetos = useConsulta(() => api.listarTrajetos(), []);
+  const consultaNoCaminho = useConsulta(() => api.alertasNoCaminho(), [], { intervaloMs: 30_000 });
+  const dados = consultaTrajetos.dados
+    ? { trajetos: consultaTrajetos.dados, noCaminho: consultaNoCaminho.dados ?? [] }
+    : undefined;
+  const erro = consultaTrajetos.erro ?? consultaNoCaminho.erro;
+  const carregando = consultaTrajetos.carregando;
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const instante = agora();
 
@@ -48,6 +52,8 @@ export default function Trajetos() {
             Você só recebe aviso do que cair nestes caminhos, nos dias e horários marcados.
           </p>
         </div>
+
+        {dados && dados.trajetos.length > 0 ? <LigarAvisos abertoDeInicio /> : null}
 
         {carregando ? <Carregando /> : null}
         {erro ? <Erro>{erro.message}</Erro> : null}

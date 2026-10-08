@@ -1,4 +1,46 @@
 import { api, ehMock } from '../api';
+import { estadoPermissao } from './notificacoes';
+
+/** Disparado sempre que o estado dos avisos pode ter mudado. */
+export const EVENTO_AVISOS = 'caminho-livre:avisos';
+
+export type EstadoAvisos =
+  | 'ligados'
+  | 'desligados'
+  | 'bloqueados'
+  /** iPhone ou iPad no Safari, fora do app instalado: lá não existe push. */
+  | 'instalar-iphone'
+  | 'sem-suporte';
+
+export function ehIphone(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  // iPad com "site para computador" se apresenta como Mac, mas tem toque.
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+export function abertoComoApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true || window.matchMedia?.('(display-mode: standalone)').matches === true;
+}
+
+/**
+ * No iPhone, push só existe com o app adicionado à Tela de Início. E o app
+ * instalado não enxerga os dados do Safari: conta criada no Safari fica lá.
+ */
+export function precisaInstalarNoIphone(): boolean {
+  return ehIphone() && !abertoComoApp();
+}
+
+export function estadoAvisos(): EstadoAvisos {
+  if (precisaInstalarNoIphone()) return 'instalar-iphone';
+  const permissao = estadoPermissao();
+  if (permissao === 'indisponivel') return 'sem-suporte';
+  if (permissao === 'granted') return 'ligados';
+  if (permissao === 'denied') return 'bloqueados';
+  return 'desligados';
+}
 
 export type ResultadoPush =
   | 'ativado'
@@ -30,9 +72,18 @@ function chaveParaBytes(base64url: string): Uint8Array<ArrayBuffer> {
 
 /**
  * Pede permissão (se ainda não foi dada), assina o Web Push deste aparelho
- * e guarda a assinatura no servidor. No mock só pede a permissão.
+ * e guarda a assinatura no servidor. No mock só pede a permissão. Precisa
+ * ser chamada direto do toque num botão: o iPhone recusa o pedido de outro jeito.
  */
 export async function ativarPush(): Promise<ResultadoPush> {
+  try {
+    return await assinarPush();
+  } finally {
+    window.dispatchEvent(new Event(EVENTO_AVISOS));
+  }
+}
+
+async function assinarPush(): Promise<ResultadoPush> {
   if (typeof Notification === 'undefined') return 'sem-suporte';
   const permissao =
     Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;

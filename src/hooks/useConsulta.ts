@@ -9,7 +9,9 @@ export interface Consulta<T> {
 
 /**
  * Busca dados da API e busca de novo quando as dependências mudam, quando
- * alguém chama invalidar() e, opcionalmente, a cada `intervaloMs`.
+ * alguém chama invalidar() e, opcionalmente, a cada `intervaloMs`. Com a aba
+ * ou o app em segundo plano o intervalo não busca nada; ao voltar, busca uma
+ * vez na hora.
  */
 export function useConsulta<T>(
   buscar: () => Promise<T>,
@@ -47,11 +49,21 @@ export function useConsulta<T>(
     };
     rodar();
     const parar = aoInvalidar(rodar);
-    const temporizador = intervaloMs ? window.setInterval(rodar, intervaloMs) : undefined;
+    const escondida = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    const temporizador = intervaloMs
+      ? window.setInterval(() => {
+          if (!escondida()) rodar();
+        }, intervaloMs)
+      : undefined;
+    const aoMudarVisibilidade = () => {
+      if (!escondida()) rodar();
+    };
+    if (intervaloMs) document.addEventListener('visibilitychange', aoMudarVisibilidade);
     return () => {
       vivo = false;
       parar();
       if (temporizador !== undefined) window.clearInterval(temporizador);
+      if (intervaloMs) document.removeEventListener('visibilitychange', aoMudarVisibilidade);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, intervaloMs]);

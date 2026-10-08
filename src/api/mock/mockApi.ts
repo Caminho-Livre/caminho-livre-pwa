@@ -23,6 +23,7 @@ import {
   registrarResposta,
   trajetoValeAgora,
   visivel,
+  visivelPara,
   type AlertaGuardado,
 } from './regras';
 
@@ -196,6 +197,10 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
       // Sem servidor no mock: o push é simulado pelas ferramentas de teste.
     },
 
+    async registrarAberturaPush() {
+      // Medição só existe no backend.
+    },
+
     async solicitarCodigo(telefone) {
       await esperar();
       const digitos = telefone.replace(/\D/g, '');
@@ -319,10 +324,11 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
 
     async listarAlertas(regiao) {
       await esperar();
+      const usuario = exigirUsuario();
       atualizarValidade();
       const limite = regiao.raioKm * 1000;
       return banco.alertas
-        .filter((a) => visivel(a) && distanciaM(a.posicao, regiao.centro) <= limite)
+        .filter((a) => visivelPara(a, usuario.id) && distanciaM(a.posicao, regiao.centro) <= limite)
         .map(paraAlerta);
     },
 
@@ -342,7 +348,7 @@ export function criarApiMock(opcoes: { latenciaMs?: number } = {}): {
       for (const cruzamento of cruzar(trajetos, banco.alertas, agora())) {
         const guardado = banco.alertas.find((a) => a.id === cruzamento.alertaId);
         const trajeto = trajetos.find((t) => t.id === cruzamento.trajetoId);
-        if (!guardado || !trajeto) continue;
+        if (!guardado || !trajeto || !visivelPara(guardado, usuario.id)) continue;
         resultado.push({
           alerta: paraAlerta(guardado),
           trajetoId: trajeto.id,

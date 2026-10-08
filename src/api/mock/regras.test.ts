@@ -8,6 +8,7 @@ import {
   registrarRelato,
   registrarResposta,
   visivel,
+  visivelPara,
   type AlertaGuardado,
 } from './regras';
 
@@ -100,6 +101,9 @@ describe('registrarResposta', () => {
     const um = registrarRelato([], relato('ana'), agora, 'a1');
     const n1 = registrarResposta(um.alertas, 'a1', 'bia', false, depois(5));
     expect(n1.alerta?.status).toBe('ativo');
+    // Quem disse "não" já não vê; os outros continuam vendo.
+    expect(visivelPara(n1.alerta!, 'bia')).toBe(false);
+    expect(visivelPara(n1.alerta!, 'caio')).toBe(true);
     const n2 = registrarResposta(n1.alertas, 'a1', 'caio', false, depois(6));
     expect(n2.alerta?.status).toBe('derrubado');
     expect(visivel(n2.alerta!)).toBe(false);

@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ehMock, ferramentasDeTeste } from '../api';
 import { avisar } from '../components/Avisos';
 import { BarraAbas } from '../components/Estrutura';
+import { Icone } from '../components/Icone';
 import { useSessao } from '../hooks/useSessao';
 import { invalidar } from '../lib/eventos';
+import { linkFeedback } from '../lib/feedback';
 import { definirModoPosicao, modoPosicao, type ModoPosicao } from '../lib/localizacao';
 import { estadoPermissao } from '../lib/notificacoes';
 import { ativarPush, TEXTO_RESULTADO_PUSH } from '../lib/push';
@@ -32,6 +34,7 @@ export default function Conta() {
   const [ligandoPush, setLigandoPush] = useState(false);
   const [posicao, setPosicao] = useState<ModoPosicao>(modoPosicao());
   const [adiantado, setAdiantado] = useState(minutosAdiantados());
+  const feedback = linkFeedback(usuario?.id);
 
   async function simular(noTrajeto: boolean) {
     const resultado = noTrajeto
@@ -77,6 +80,17 @@ export default function Conta() {
             <p className="subtitulo">+55 {usuario?.telefone ? formatarTelefone(usuario.telefone) : ''}</p>
           </section>
         )}
+
+        {feedback ? (
+          <section className="bloco">
+            <h2 className="secao">Achou algo estranho?</h2>
+            <p className="mudo">Aviso que não chegou, alerta errado, tela confusa: conte do jeito que for.</p>
+            <a className="botao botao--secundario" href={feedback} target="_blank" rel="noreferrer">
+              <Icone nome="conversa" tamanho={20} />
+              Mandar feedback no WhatsApp
+            </a>
+          </section>
+        ) : null}
 
         <section className="bloco">
           <h2 className="secao">Notificações</h2>

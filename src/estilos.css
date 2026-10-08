@@ -1033,3 +1033,90 @@ input[type='search']::-webkit-search-cancel-button {
     transition: none !important;
   }
 }
+
+/* ---------- Avisos do celular (push) ---------- */
+
+.avisos-celular {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid var(--amarelo);
+  border-radius: 16px;
+  background: var(--superficie);
+}
+
+.avisos-celular__linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avisos-celular__icone {
+  flex: none;
+  display: flex;
+  color: var(--amarelo);
+}
+
+.avisos-celular__titulo {
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.avisos-celular__detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--linha);
+}
+
+.botao-pequeno--destaque {
+  border-color: var(--amarelo);
+  background: var(--amarelo);
+  color: var(--fundo);
+}
+
+.botao-pequeno--destaque:disabled {
+  border-color: var(--linha-forte);
+  background: var(--superficie-2);
+  color: var(--mudo);
+}
+
+.passos-iphone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.passos-iphone li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--texto-2);
+}
+
+.passos-iphone strong {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.passos-iphone__icone {
+  display: inline-flex;
+  vertical-align: -3px;
+  color: var(--azul);
+}
+
+.entrar__instalar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--amarelo);
+  border-radius: 16px;
+  background: var(--superficie);
+}

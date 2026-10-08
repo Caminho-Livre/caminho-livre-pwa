@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import type { Regiao } from '../api/tipos';
 import { BarraAbas, Erro } from '../components/Estrutura';
 import { Icone, ICONE_DO_TIPO } from '../components/Icone';
+import { LigarAvisos } from '../components/LigarAvisos';
 import { Mapa, type PinoNoMapa } from '../components/Mapa';
 import { useConsulta } from '../hooks/useConsulta';
 import { regiaoDoUsuario } from '../lib/regiao';
@@ -9,23 +11,37 @@ import { agora } from '../lib/relogio';
 import { NOME_TIPO } from '../lib/rotulos';
 import { haQuanto, resumoDias, resumoJanela, trajetoValendo } from '../lib/tempo';
 
-async function carregar() {
-  // A região depende dos trajetos: busca eles primeiro.
-  const trajetos = await api.listarTrajetos();
-  const regiao = regiaoDoUsuario(trajetos, agora());
+/** O que muda com frequência: só isto é buscado a cada 20 s. As rotas não. */
+async function carregarAlertas(regiao: Regiao) {
   const [alertas, noCaminho, atividade] = await Promise.all([
     api.listarAlertas(regiao),
     api.alertasNoCaminho(),
     api.atividadeRecente(regiao),
   ]);
-  return { trajetos, regiao, alertas, noCaminho, atividade };
+  return { alertas, noCaminho, atividade };
 }
 
 export default function Inicio() {
   const navegar = useNavigate();
-  const { dados, erro } = useConsulta(carregar, [], { intervaloMs: 20_000 });
-
+  // Trajetos (com a rota inteira, a parte pesada) só ao abrir a tela ou
+  // quando algo muda (invalidar), nunca no intervalo.
+  const consultaTrajetos = useConsulta(() => api.listarTrajetos(), []);
   const instante = agora();
+  const regiao = consultaTrajetos.dados ? regiaoDoUsuario(consultaTrajetos.dados, instante) : null;
+  const chaveRegiao = regiao
+    ? `${regiao.centro.lat.toFixed(3)},${regiao.centro.lng.toFixed(3)},${regiao.raioKm}`
+    : '';
+  const consultaAlertas = useConsulta(
+    () => (regiao ? carregarAlertas(regiao) : Promise.resolve(null)),
+    [chaveRegiao],
+    { intervaloMs: 20_000 },
+  );
+
+  const dados =
+    consultaTrajetos.dados && regiao
+      ? { trajetos: consultaTrajetos.dados, regiao, ...consultaAlertas.dados }
+      : undefined;
+  const erro = consultaTrajetos.erro ?? consultaAlertas.erro;
   const trajetos = dados?.trajetos ?? [];
   const noCaminho = dados?.noCaminho ?? [];
   const emFoco =
@@ -44,7 +60,7 @@ export default function Inicio() {
   }));
 
   const primeiro = noCaminho[0];
-  const relatos = dados?.atividade.relatosUltimaHora ?? 0;
+  const relatos = dados?.atividade?.relatosUltimaHora ?? 0;
 
   return (
     <div className="tela">
@@ -92,6 +108,8 @@ export default function Inicio() {
 
       <div className="inicio__painel">
         {erro ? <Erro>{erro.message}</Erro> : null}
+
+        {trajetos.length > 0 ? <LigarAvisos /> : null}
 
         {primeiro ? (
           <Link to={`/alerta/${primeiro.alerta.id}`} className="cartao">

@@ -19,6 +19,10 @@ export const DESENHOS = {
   sim: '<path d="M5 12l5 5 9-10"/>',
   nao: '<path d="M6 6l12 12M18 6L6 18"/>',
   lixeira: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2z"/><path d="M10 21h4"/>',
+  // Ícone de "Compartilhar" do Safari: quadrado aberto com seta para cima.
+  compartilhar: '<path d="M12 3v12M8 7l4-4 4 4"/><path d="M8 11H6v10h12V11h-2"/>',
+  conversa: '<path d="M4 5h16v11H9l-5 4V5z"/>',
 } as const;
 
 export type NomeIcone = keyof typeof DESENHOS;

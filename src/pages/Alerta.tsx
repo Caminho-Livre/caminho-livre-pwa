@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { avisar } from '../components/Avisos';
 import { Cabecalho, Carregando, Erro } from '../components/Estrutura';
@@ -28,16 +28,31 @@ export default function Alerta() {
   const { dados, erro, carregando } = useConsulta(() => carregar(id), [id]);
   const [enviando, setEnviando] = useState(false);
   const [erroResposta, setErroResposta] = useState<string | null>(null);
+  const [busca, setBusca] = useSearchParams();
+  const veioDoPush = busca.get('push') === '1';
+
+  // Aberto por um push (?push=1): registra para medir o teste e limpa a URL.
+  useEffect(() => {
+    if (!veioDoPush || !id) return;
+    api.registrarAberturaPush(id).catch(() => {
+      // Medição não pode atrapalhar quem está lendo o alerta.
+    });
+    setBusca({}, { replace: true });
+  }, [veioDoPush, id, setBusca]);
 
   async function responder(aindaEsta: boolean) {
     setErroResposta(null);
     setEnviando(true);
     try {
-      await api.responderAlerta(id, aindaEsta);
+      const depois = await api.responderAlerta(id, aindaEsta);
       invalidar();
       avisar({
         titulo: 'Obrigado',
-        texto: aindaEsta ? 'O alerta segue valendo por mais um tempo.' : 'O alerta saiu do mapa.',
+        texto: aindaEsta
+          ? 'O alerta segue valendo por mais um tempo.'
+          : depois.status === 'derrubado'
+            ? 'O alerta saiu do mapa.'
+            : 'Ele some da sua tela. Sai do mapa de todos quando mais alguém disser que acabou.',
       });
       navegar('/', { replace: true });
     } catch (falha) {

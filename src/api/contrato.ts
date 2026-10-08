@@ -18,9 +18,9 @@ import type {
 /**
  * Contrato único entre as telas e o backend.
  *
- * Hoje a única implementação é o mock (src/api/mock). Para ligar no backend
- * real, crie outra implementação desta interface (fetch para a API Spring) e
- * troque a exportação em src/api/index.ts. Nenhuma tela importa o mock direto.
+ * Há duas implementações: o mock local (src/api/mock) e o Supabase
+ * (src/api/supabase). src/api/index.ts escolhe uma pelas variáveis de
+ * ambiente. Nenhuma tela importa uma implementação direto.
  */
 export interface Api {
   // --- Sessão ---------------------------------------------------------
@@ -61,6 +61,8 @@ export interface Api {
   // --- Push ---------------------------------------------------------------
   /** Guarda a assinatura Web Push deste aparelho para o servidor poder avisar. */
   registrarAssinaturaPush(assinatura: AssinaturaPush): Promise<void>;
+  /** Marca que o usuário abriu o alerta a partir do push (para medir o teste). */
+  registrarAberturaPush(alertaId: string): Promise<void>;
   /**
    * Registra um ouvinte para pushes recebidos com o app aberto e devolve a
    * função que cancela o registro. No backend real isso vira Web Push: o

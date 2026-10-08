@@ -79,6 +79,19 @@ export interface NovoRelato {
   detalhes: string[];
   /** Texto do local ("Perto de …") já calculado pelo app. */
   descricaoLocal?: string;
+  /** Leitura do GPS no momento do relato, guardada para medir depois. */
+  gps?: LeituraGps;
+}
+
+/**
+ * O que o GPS disse além da posição. Direção e velocidade só existem com o
+ * aparelho em movimento; parado, vêm nulas.
+ */
+export interface LeituraGps {
+  precisaoM: number | null;
+  /** 0 = norte, 90 = leste. */
+  direcaoGraus: number | null;
+  velocidadeMs: number | null;
 }
 
 /** Agregado de relatos do mesmo tipo, próximos no espaço e no tempo. */

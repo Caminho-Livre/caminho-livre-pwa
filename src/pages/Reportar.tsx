@@ -50,7 +50,13 @@ export default function Reportar() {
     setErro(null);
     setEnviando(true);
     try {
-      await api.criarRelato({ tipo, posicao: local.posicao, detalhes, descricaoLocal: local.descricao });
+      await api.criarRelato({
+        tipo,
+        posicao: local.posicao,
+        detalhes,
+        descricaoLocal: local.descricao,
+        gps: local.gps,
+      });
       invalidar();
       avisar({ titulo: 'Relato enviado', texto: 'Quem passa por ali já está sendo avisado.' });
       navegar('/', { replace: true });

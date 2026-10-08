@@ -62,14 +62,16 @@ describe('mock da API', () => {
     expect(recebidos).toHaveLength(1);
   });
 
-  it('meu relato vira alerta e "não está mais" o tira do mapa', async () => {
+  it('meu relato vira alerta; meu "não está mais" o tira da minha tela, mas não derruba sozinho', async () => {
     const { api, ferramentas } = await logado();
     const posicao = ferramentas.posicaoSimulada();
     const { alerta } = await api.criarRelato({ tipo: 'bloqueio', posicao, detalhes: ['Meia pista'] });
     expect(alerta.relatos).toBe(1);
     expect(await api.listarAlertas(DF)).toHaveLength(1);
     const depois = await api.responderAlerta(alerta.id, false);
-    expect(depois.status).toBe('derrubado');
+    // Derrubar precisa de 2 pessoas; para quem disse "não", ele já some.
+    expect(depois.status).toBe('ativo');
+    expect(depois.negativas).toBe(1);
     expect(await api.listarAlertas(DF)).toHaveLength(0);
   });
 
